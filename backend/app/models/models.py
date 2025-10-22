@@ -66,7 +66,6 @@ class Bill(db.Model):
     merchant_id = db.Column(db.Integer, db.ForeignKey('merchants.id'), nullable=True)
     
     total_bags = db.Column(db.Integer, default=0)
-    total_quantity = db.Column(db.Float, default=0.0)
     total_weight = db.Column(db.Float, default=0.0)
     
     himmali = db.Column(db.Float, default=0.0)
@@ -91,7 +90,6 @@ class Bill(db.Model):
             'merchant_id': self.merchant_id,
             'merchant': self.merchant.to_dict() if self.merchant else None,
             'total_bags': self.total_bags,
-            'total_quantity': self.total_quantity,
             'total_weight': self.total_weight,
             'himmali': self.himmali,
             'motor_bhada': self.motor_bhada,

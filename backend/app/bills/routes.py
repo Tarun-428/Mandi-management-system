@@ -64,7 +64,6 @@ def create_bill():
             village_name=data.get('village_name'),
             merchant_id=data.get('merchant_id'),
             total_bags=totals['total_bags'],
-            total_quantity=totals['total_quantity'],
             total_weight=totals['total_weight'],
             himmali=himmali,
             motor_bhada=motor_bhada,
@@ -90,7 +89,8 @@ def create_bill():
             db.session.add(item)
             
             if item.merchant_id:
-                merchant = Merchant.query.get(item.merchant_id)
+                # Use row-level locking to prevent concurrent update conflicts
+                merchant = db.session.query(Merchant).with_for_update().get(item.merchant_id)
                 if merchant:
                     merchant.current_balance += item.amount
                     
@@ -144,7 +144,8 @@ def update_bill(bill_id):
         old_items = BillItem.query.filter_by(bill_id=bill_id).all()
         for item in old_items:
             if item.merchant_id:
-                merchant = Merchant.query.get(item.merchant_id)
+                # Use row-level locking for concurrent access
+                merchant = db.session.query(Merchant).with_for_update().get(item.merchant_id)
                 if merchant:
                     merchant.current_balance -= item.amount
             db.session.delete(item)
@@ -164,7 +165,6 @@ def update_bill(bill_id):
         totals = calculate_bill_totals(items_data, himmali, motor_bhada, other_charges)
         
         bill.total_bags = totals['total_bags']
-        bill.total_quantity = totals['total_quantity']
         bill.total_weight = totals['total_weight']
         bill.himmali = himmali
         bill.motor_bhada = motor_bhada
@@ -186,7 +186,8 @@ def update_bill(bill_id):
             db.session.add(item)
             
             if item.merchant_id:
-                merchant = Merchant.query.get(item.merchant_id)
+                # Use row-level locking to prevent concurrent update conflicts
+                merchant = db.session.query(Merchant).with_for_update().get(item.merchant_id)
                 if merchant:
                     merchant.current_balance += item.amount
                     
@@ -224,7 +225,8 @@ def delete_bill(bill_id):
         items = BillItem.query.filter_by(bill_id=bill_id).all()
         for item in items:
             if item.merchant_id:
-                merchant = Merchant.query.get(item.merchant_id)
+                # Use row-level locking for concurrent access
+                merchant = db.session.query(Merchant).with_for_update().get(item.merchant_id)
                 if merchant:
                     merchant.current_balance -= item.amount
         
