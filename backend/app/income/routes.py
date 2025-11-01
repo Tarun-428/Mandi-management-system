@@ -1,5 +1,5 @@
 from flask import request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from ..models.models import db, AdhatiyaIncome, Merchant
 from sqlalchemy import func
 from datetime import datetime
@@ -9,10 +9,14 @@ from . import income_bp
 @jwt_required()
 def get_income():
     try:
+        user_id = get_jwt_identity()
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         
-        query = AdhatiyaIncome.query
+        # Get all merchant IDs for the current user
+        merchant_ids = [m.id for m in Merchant.query.filter_by(user_id=user_id).all()]
+        
+        query = AdhatiyaIncome.query.filter(AdhatiyaIncome.merchant_id.in_(merchant_ids))
         
         if start_date:
             start = datetime.strptime(start_date, '%Y-%m-%d').date()
@@ -43,15 +47,19 @@ def get_income():
 @jwt_required()
 def get_income_summary():
     try:
+        user_id = get_jwt_identity()
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
+        
+        # Get all merchant IDs for the current user
+        merchant_ids = [m.id for m in Merchant.query.filter_by(user_id=user_id).all()]
         
         query = db.session.query(
             AdhatiyaIncome.date,
             AdhatiyaIncome.merchant_id,
             func.sum(AdhatiyaIncome.trade_amount).label('total_trade'),
             func.sum(AdhatiyaIncome.commission_amount).label('total_commission')
-        )
+        ).filter(AdhatiyaIncome.merchant_id.in_(merchant_ids))
         
         if start_date:
             start = datetime.strptime(start_date, '%Y-%m-%d').date()

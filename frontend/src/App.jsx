@@ -1,37 +1,35 @@
-import React, { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Dashboard from './pages/Dashboard'
-import Profile from './pages/Profile'
-import Bills from './pages/Bills'
-import CreateBill from './pages/CreateBill'
-import EditBill from './pages/EditBill'
-import Merchants from './pages/Merchants'
-import MerchantProfile from './pages/MerchantProfile'
-import Farmers from './pages/Farmers'
-import MerchantSummary from './pages/MerchantSummary'
-import AdhatiyaIncome from './pages/AdhatiyaIncome'
-import PrintBill from './pages/PrintBill'
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import Login from "./pages/Login";
+import Register from "./pages/Register";
+import Dashboard from "./pages/Dashboard";
+import Profile from "./pages/Profile";
+import Bills from "./pages/Bills";
+import CreateBill from "./pages/CreateBill";
+import EditBill from "./pages/EditBill";
+import Merchants from "./pages/Merchants";
+import MerchantProfile from "./pages/MerchantProfile";
+import Farmers from "./pages/Farmers";
+import MerchantSummary from "./pages/MerchantSummary";
+import AdhatiyaIncome from "./pages/AdhatiyaIncome";
+import PrintBill from "./pages/PrintBill";
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    setIsAuthenticated(!!token)
-  }, [])
+    const token = localStorage.getItem("token");
+    setIsAuthenticated(!!token);
+  }, []);
 
-  const PrivateRoute = ({ children }) => {
-    return isAuthenticated ? children : <Navigate to="/login" />
-  }
+  const PrivateRoute = ({ children }) => (isAuthenticated ? children : <Navigate to="/login" />);
 
   return (
     <Router>
       <Routes>
         <Route path="/login" element={<Login setAuth={setIsAuthenticated} />} />
         <Route path="/register" element={<Register setAuth={setIsAuthenticated} />} />
-        
+
         <Route path="/" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
         <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         <Route path="/bills" element={<PrivateRoute><Bills /></PrivateRoute>} />
@@ -45,7 +43,7 @@ function App() {
         <Route path="/adhatiya-income" element={<PrivateRoute><AdhatiyaIncome /></PrivateRoute>} />
       </Routes>
     </Router>
-  )
+  );
 }
 
-export default App
+export default App;

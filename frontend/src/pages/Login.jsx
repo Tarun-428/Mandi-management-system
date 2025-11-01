@@ -20,7 +20,9 @@ function Login({ setAuth }) {
 
     try {
       const response = await authAPI.login(formData)
+      console.log("response",response)
       localStorage.setItem('token', response.data.access_token)
+      console.log("localstorage ", localStorage)
       localStorage.setItem('user', JSON.stringify(response.data.user))
       setAuth(true)
       navigate('/')

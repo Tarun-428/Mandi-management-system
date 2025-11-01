@@ -14,6 +14,7 @@ function EditBill() {
     farmer_mobile: '',
     village_name: '',
     himmali: 0,
+    bharai: 0,
     motor_bhada: 0,
     other_charges: 0
   })
@@ -36,12 +37,13 @@ function EditBill() {
         farmer_mobile: bill.farmer_mobile || '',
         village_name: bill.village_name,
         himmali: bill.himmali,
+        bharai: bill.bharai,
         motor_bhada: bill.motor_bhada,
         other_charges: bill.other_charges
       })
       setItems(bill.items.map(item => ({
         vegetable: item.vegetable,
-        quantity: item.quantity,
+        // quantity: item.quantity,
         bags: item.bags,
         weight: item.weight,
         rate: item.rate,
@@ -70,8 +72,8 @@ function EditBill() {
     const newItems = [...items]
     newItems[index][field] = value
 
-    if (field === 'quantity' || field === 'rate') {
-      const qty = parseFloat(newItems[index].quantity) || 0
+    if (field === 'weight' || field === 'rate') {
+      const qty = parseFloat(newItems[index].weight) || 0
       const rate = parseFloat(newItems[index].rate) || 0
       newItems[index].amount = qty * rate
     }
@@ -87,7 +89,7 @@ function EditBill() {
   const addItem = () => {
     setItems([...items, {
       vegetable: '',
-      quantity: '',
+      // quantity: '',
       bags: '',
       weight: '',
       rate: '',
@@ -106,12 +108,12 @@ function EditBill() {
 
   const calculateTotals = () => {
     const totalBags = items.reduce((sum, item) => sum + (parseInt(item.bags) || 0), 0)
-    const totalQuantity = items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0)
+    // const totalQuantity = items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0)
     const totalWeight = items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0)
     const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-    const grandTotal = subtotal + parseFloat(formData.himmali || 0) + parseFloat(formData.motor_bhada || 0) + parseFloat(formData.other_charges || 0)
+    const grandTotal = subtotal - parseFloat(formData.himmali || 0) - parseFloat(formData.bharai || 0) - parseFloat(formData.motor_bhada || 0) - parseFloat(formData.other_charges || 0)
 
-    return { totalBags, totalQuantity, totalWeight, subtotal, grandTotal }
+    return { totalBags, totalWeight, subtotal, grandTotal }
   }
 
   const handleSubmit = async (e) => {
@@ -124,7 +126,7 @@ function EditBill() {
         ...formData,
         items: items.map(item => ({
           vegetable: item.vegetable,
-          quantity: parseFloat(item.quantity),
+          // quantity: parseFloat(item.quantity),
           bags: parseInt(item.bags),
           weight: parseFloat(item.weight),
           rate: parseFloat(item.rate),
@@ -209,7 +211,7 @@ function EditBill() {
                 <thead>
                   <tr>
                     <th>Vegetable</th>
-                    <th>Quantity (kg)</th>
+                    {/* <th>Quantity (kg)</th> */}
                     <th>Bags</th>
                     <th>Weight (kg)</th>
                     <th>Rate (₹/kg)</th>
@@ -233,7 +235,7 @@ function EditBill() {
                           ))}
                         </Form.Select>
                       </td>
-                      <td>
+                      {/* <td>
                         <Form.Control
                           type="number"
                           step="0.01"
@@ -241,7 +243,7 @@ function EditBill() {
                           onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
                           required
                         />
-                      </td>
+                      </td> */}
                       <td>
                         <Form.Control
                           type="number"
@@ -309,9 +311,21 @@ function EditBill() {
                     <Form.Label>Himmali</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="himmali"
                       value={formData.himmali}
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Bharai</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="1.00"
+                      name="bharai"
+                      value={formData.bharai}
                       onChange={handleChange}
                     />
                   </Form.Group>
@@ -321,7 +335,7 @@ function EditBill() {
                     <Form.Label>Motor Bhada</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="motor_bhada"
                       value={formData.motor_bhada}
                       onChange={handleChange}
@@ -333,7 +347,7 @@ function EditBill() {
                     <Form.Label>Other Charges</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="other_charges"
                       value={formData.other_charges}
                       onChange={handleChange}
@@ -351,9 +365,9 @@ function EditBill() {
                 <Col md={3}>
                   <strong>Total Bags:</strong> {totals.totalBags}
                 </Col>
-                <Col md={3}>
+                {/* <Col md={3}>
                   <strong>Total Quantity:</strong> {totals.totalQuantity} kg
-                </Col>
+                </Col> */}
                 <Col md={3}>
                   <strong>Total Weight:</strong> {totals.totalWeight} kg
                 </Col>

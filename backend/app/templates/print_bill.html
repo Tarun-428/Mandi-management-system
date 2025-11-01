@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Bill - {{ bill.bill_number or 'N/A' }}</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 10mm;
+      }
+
+      body {
+        font-family: Arial, sans-serif;
+        font-size: 12px;
+        margin: 0;
+        padding: 0;
+        background: #fdfdfd;
+      }
+
+      /* Styles for the screen, mimics A4 size */
+      .printable-area {
+        width: 190mm;
+        min-height: 277mm; /* A4 height minus margins */
+        margin: 20px auto;
+        padding: 10mm;
+        border: 1px solid #d3d3d3;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        background: #fff;
+      }
+
+      .bill-container {
+        width: 100%;
+        border: 1px solid #000;
+        padding: 8px;
+        box-sizing: border-box;
+      }
+
+      .slip-container {
+        width: 100%;
+        border: 1px solid #000;
+        padding: 8px;
+        box-sizing: border-box;
+        margin-top: 20px;
+        border-top: 2px dashed #000;
+      }
+
+      .header {
+        text-align: center;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #000;
+      }
+
+      .header h1 {
+        font-size: 24px;
+        font-weight: bold;
+        margin: 0;
+        color: #000;
+      }
+
+      .header p {
+        margin: 2px 0;
+        font-size: 13px;
+        font-weight: bold;
+      }
+
+      .header .sub-header {
+        font-size: 10px;
+        font-weight: normal;
+      }
+
+      .details-section {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 5px;
+        border-bottom: 1px solid #000;
+      }
+
+      .farmer-details,
+      .bill-details {
+        padding: 5px;
+      }
+
+      .farmer-details table,
+      .bill-details table {
+        width: 100%;
+      }
+
+      .farmer-details {
+        width: 65%;
+      }
+
+      .bill-details {
+        width: 35%;
+      }
+
+      .farmer-details td:first-child,
+      .bill-details td:first-child {
+        font-weight: bold;
+        width: 80px; /* Label width */
+      }
+
+      .bill-details td:first-child {
+        width: 70px; /* Label width */
+      }
+
+      .bill-details .value-box {
+        border: 1px solid #000;
+        padding: 4px;
+        text-align: center;
+        min-height: 16px;
+      }
+
+      .items-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: -1px; /* Overlap border with section above */
+      }
+
+      .items-table th,
+      .items-table td {
+        border: 1px solid #000;
+        padding: 6px;
+        text-align: center;
+        font-size: 13px;
+      }
+
+      .items-table thead th {
+        font-weight: bold;
+        background: #f0f0f0;
+      }
+
+      /* Column widths to match image */
+      .items-table .col-desc {
+        width: 40%;
+        text-align: left;
+        padding-left: 8px;
+      }
+      .items-table .col-bags {
+        width: 10%;
+      }
+      .items-table .col-weight {
+        width: 15%;
+      }
+      .items-table .col-rate {
+        width: 15%;
+      }
+      .items-table .col-amount {
+        width: 20%;
+        text-align: right;
+        padding-right: 8px;
+      }
+
+      .items-table tfoot td {
+        font-weight: bold;
+      }
+
+      .items-table .value {
+        text-align: right;
+        padding-right: 8px;
+      }
+
+      .items-table .label {
+        text-align: left;
+        padding-left: 8px;
+      }
+
+      .post-table-section {
+        display: flex;
+        justify-content: space-between;
+        border: 1px solid #000;
+        border-top: none;
+        padding: 5px;
+      }
+
+      .notes-left {
+        width: 60%;
+        font-size: 12px;
+      }
+      .notes-left p {
+        margin: 2px 0;
+      }
+
+      .kisan-bill-stamp {
+        font-weight: bold;
+        font-size: 16px;
+        text-align: center;
+        margin-top: 10px;
+        width: 100px;
+        height: 15px;
+        border: 2px solid black;
+        padding: 10px;
+        margin: 10px auto 0 auto;
+      }
+
+      .deductions-right {
+        width: 35%;
+      }
+
+      .deductions-right table {
+        width: 100%;
+      }
+
+      .deductions-right td {
+        padding: 2px 4px;
+        font-size: 13px;
+      }
+
+      .deductions-right td:last-child {
+        text-align: right;
+        width: 60px; /* Fixed width for amount */
+      }
+
+      .net-amount-section {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border: 1px solid #000;
+        border-top: none;
+        padding: 8px;
+        font-weight: bold;
+        background: #f0f0f0;
+      }
+
+      .net-amount-section .amount-in-words {
+        font-size: 13px;
+      }
+
+      .net-amount-section .net-total-box {
+        font-size: 14px;
+        min-width: 150px;
+        text-align: right;
+      }
+
+      .signature {
+        text-align: right;
+        padding: 20px 10px 0 0;
+        font-weight: bold;
+      }
+
+      /* --- Slip Styles --- */
+
+      .slip-details {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        grid-template-rows: auto auto;
+        gap: 10px 15px;
+        margin-top: 10px;
+        padding-bottom: 10px;
+        border-bottom: 1px solid #000;
+      }
+
+      .slip-field {
+        font-size: 13px;
+      }
+
+      .slip-field strong {
+        margin-right: 5px;
+      }
+
+      .slip-value-box {
+        border: 1px solid #000;
+        padding: 5px;
+        font-weight: bold;
+        text-align: center;
+        min-height: 20px;
+      }
+
+      .slip-paid-to {
+        grid-column: 1 / span 2;
+      }
+
+      .slip-footer {
+        padding-top: 8px;
+      }
+
+      .slip-footer .amount-in-words {
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 8px;
+        display: block;
+      }
+
+      .slip-payment-mode {
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .slip-footer-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .slip-footer-bottom .total-box {
+        border: 1px solid #000;
+        padding: 8px 12px;
+        font-size: 16px;
+        font-weight: bold;
+      }
+
+      @media print {
+        .no-print {
+          display: none;
+        }
+        /* Reset screen-only styles */
+        .printable-area {
+          width: 100%;
+          min-height: auto;
+          margin: 0;
+          padding: 0;
+          border: none;
+          box-shadow: none;
+          background: #fff;
+        }
+        body {
+          background: #fff;
+          font-size: 12px; /* Ensure base font size is consistent */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="printable-area">
+      <div class="bill-container">
+        <div class="header">
+          <h1>{{ user.company_name or 'KRISHNA TRADERS' }}</h1>
+          <p>{{ user.address or 'Sardar Patel Colony, SHAJAPUR (M.P.)' }}</p>
+          <p class="sub-header">
+            {% if user and user.partners %} {% for partner in user.partners %}
+            {{ partner.name }} - {{ partner.mobile }}{% if not loop.last %}, {%
+            endif %} {% endfor %} {% else %} {% endif %}
+          </p>
+          <p>आलू, प्याज, लहसुन के थोक विक्रेता एवं कमीशन एजेंट</p>
+        </div>
+
+        <div class="details-section">
+          <div class="farmer-details">
+            <table>
+              <tr>
+                <td>नाम :</td>
+                <td><strong>श्री {{ bill.farmer_name or 'N/A' }}</strong></td>
+              </tr>
+              <tr>
+                <td>गाँव :</td>
+                <td><strong>{{ bill.village_name or 'N/A' }}</strong></td>
+              </tr>
+            </table>
+          </div>
+          <div class="bill-details">
+            <table>
+              <tr>
+                <td>बिल नंबर :</td>
+                <td>
+                  <div class="value-box">{{ bill.bill_number or 'N/A' }}</div>
+                </td>
+              </tr>
+              <tr>
+                <td>बिल दिनांक :</td>
+                <td>
+                  <div class="value-box">
+                    {{ bill.created_at.strftime('%d-%m-%Y') if bill.created_at
+                    else 'N/A' }}
+                  </div>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-desc">विवरण</th>
+              <th class="col-bags">नग</th>
+              <th class="col-rate">भाव</th>
+              <th class="col-weight">वजन</th>
+              <th class="col-amount">रकम</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in bill.items %}
+            <tr>
+              <td class="label">{{ item.vegetable or 'N/A' }}</td>
+              <td>{{ item.bags or 0 }}</td>
+              <td>{{ "%.2f"|format(item.rate) if item.rate else 0 }}</td>
+              <td>{{ "%.2f"|format(item.weight) if item.weight else 0 }}</td>
+              <td class="value">
+                {{ "%.2f"|format(item.amount) if item.amount else 0 }}
+              </td>
+            </tr>
+            {% endfor %} {% if bill.items|length < 5 %} {% for i in range(5 -
+            (bill.items|length)) %}
+            <tr>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+              <td>&nbsp;</td>
+            </tr>
+            {% endfor %} {% endif %}
+          </tbody>
+          <tfoot>
+            <tr>
+              <td class="label"><strong>कुल</strong></td>
+              <td><strong>{{ bill.total_bags or 0 }}</strong></td>
+              <td>
+                <strong
+                  >{{ "%.2f"|format(bill.total_weight) if bill.total_weight else
+                  0 }}</strong
+                >
+              </td>
+              <td></td>
+              <td class="value">
+                <strong
+                  >{{ "%.2f"|format(bill.subtotal) if bill.subtotal else 0
+                  }}</strong
+                >
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+
+        <div class="post-table-section">
+          <div class="notes-left">
+            <p>1. भूल - चूक लेनी देनी</p>
+            <p>2. शाजापुर न्याय क्षेत्र के अंतर्गत</p>
+            <div class="kisan-bill-stamp">किसान बिल</div>
+          </div>
+          <div class="deductions-right">
+            <table>
+              <tr>
+                <td>Hammali</td>
+                <td>
+                  {{ "%.2f"|format(bill.himmali) if bill.himmali else 0 }}
+                </td>
+              </tr>
+              <tr>
+                <td>Bharai</td>
+                <td>{{ "%.2f"|format(bill.bharai) if bill.bharai else 0 }}</td>
+              </tr>
+              <tr>
+                <td>Motor Bhada</td>
+                <td>
+                  {{ "%.2f"|format(bill.motor_bhada) if bill.motor_bhada else 0
+                  }}
+                </td>
+              </tr>
+              <tr>
+                <td>Other Charges</td>
+                <td>
+                  {{ "%.2f"|format(bill.other_charges) if bill.other_charges
+                  else 0 }}
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="net-amount-section">
+          <span class="amount-in-words"
+            >Rupees {{ amount_in_words or '...' }} Only</span
+          >
+          <span class="net-total-box">
+            <strong>नेट रकम :</strong>
+            {{ "%.2f"|format(bill.grand_total) if bill.grand_total else 0 }}
+          </span>
+        </div>
+
+        <div class="signature">हस्ताक्षर</div>
+      </div>
+
+      <div class="slip-container">
+        <div class="header">
+          <h1>{{ user.company_name or 'KRISHNA TRADERS' }}</h1>
+          <p>{{ user.address or 'Sardar Patel Colony, SHAJAPUR (M.P.)' }}</p>
+        </div>
+
+        <div class="slip-details">
+          <div class="slip-field">
+            <strong>बिल नंबर:</strong> {{ bill.bill_number or 'N/A' }}
+          </div>
+          <div class="slip-field">
+            <strong>गाड़ी नं.:</strong> ........................
+          </div>
+          <div class="slip-field">
+            <strong>दिनांक:</strong> {{ bill.created_at.strftime('%d-%m-%Y') if
+            bill.created_at else 'N/A' }}
+          </div>
+          <div class="slip-field slip-paid-to">
+            <strong>Paid To:</strong> {{ bill.farmer_name or 'N/A' }}, {{
+            bill.village_name or 'N/A' }}
+          </div>
+          <div class="slip-field">
+            <div class="slip-value-box">
+              {{ "%.2f"|format(bill.grand_total) if bill.grand_total else 0 }}
+            </div>
+          </div>
+        </div>
+
+        <div class="slip-footer">
+          <div class="slip-payment-mode">
+            <strong>Thru Cheque No/ Cash:</strong>
+            .....................................
+          </div>
+          <span class="amount-in-words"
+            >Rupees {{ amount_in_words or '...' }} Only</span
+          >
+
+          <div class="slip-footer-bottom">
+            <div class="total-box">
+              {{ "%.2f"|format(bill.grand_total) if bill.grand_total else 0 }}
+            </div>
+            <div class="signature">हस्ताक्षर</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="no-print" onclick="window.print()">Print Bill</button>
+  </body>
+</html>

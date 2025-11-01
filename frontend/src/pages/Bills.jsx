@@ -1,67 +1,115 @@
-import React, { useState, useEffect } from 'react'
-import { Container, Table, Button, Form, Row, Col, Alert } from 'react-bootstrap'
-import { useNavigate } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-import { billsAPI, merchantsAPI } from '../services/api'
+import React, { useState, useEffect } from 'react';
+import { Container, Table, Button, Form, Row, Col, Alert } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import { billsAPI, merchantsAPI } from '../services/api';
 
 function Bills() {
-  const [bills, setBills] = useState([])
-  const [merchants, setMerchants] = useState([])
+  const [bills, setBills] = useState([]);
+  const [merchants, setMerchants] = useState([]);
   const [filters, setFilters] = useState({
     start_date: '',
     end_date: '',
     farmer_name: '',
     village_name: '',
     merchant_id: ''
-  })
-  const [error, setError] = useState('')
-  const navigate = useNavigate()
+  });
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
-    loadBills()
-    loadMerchants()
-  }, [])
+    loadMerchants();
+    loadBills();
+  }, []);
+
+  useEffect(() => {
+    const delayDebounce = setTimeout(() => {
+      loadBills();
+    }, 500);
+
+    return () => clearTimeout(delayDebounce);
+  }, [filters]);
 
   const loadBills = async () => {
     try {
-      const response = await billsAPI.getAll(filters)
-      setBills(response.data)
+      const response = await billsAPI.getAll(filters);
+      setBills(response.data);
     } catch (err) {
-      setError('Failed to load bills')
+      setError('Failed to load bills');
     }
-  }
+  };
 
   const loadMerchants = async () => {
     try {
-      const response = await merchantsAPI.getAll()
-      setMerchants(response.data)
+      const response = await merchantsAPI.getAll();
+      setMerchants(response.data);
     } catch (err) {
-      console.error('Failed to load merchants')
+      console.error('Failed to load merchants');
     }
-  }
+  };
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value })
-  }
-
-  const handleFilter = () => {
-    loadBills()
-  }
+    setFilters({ ...filters, [e.target.name]: e.target.value });
+  };
 
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this bill?')) {
       try {
-        await billsAPI.delete(id)
-        loadBills()
+        await billsAPI.delete(id);
+        loadBills();
       } catch (err) {
-        setError('Failed to delete bill')
+        setError('Failed to delete bill');
       }
     }
-  }
+  };
 
-  const handlePrint = (id) => {
-    window.open(`/bills/print/${id}`, '_blank')
+  // ✅ UPDATED PRINT FUNCTION — No navigation, no new tab
+  const handlePrint = async (id) => {
+  try {
+    // 1. Get the HTML string directly
+    //    'response' is now 'printHTML'
+    const printHTML = await billsAPI.print(id);
+
+    // 2. Check if we got valid HTML
+    if (typeof printHTML !== 'string' || printHTML.length === 0) {
+        console.error("Print failed: Received empty or invalid HTML.");
+        alert("Failed to print bill. Received empty data.");
+        return;
+    }
+
+    // 3. Create the iframe
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.right = "0";
+    iframe.style.bottom = "0";
+    iframe.style.width = "0";
+    iframe.style.height = "0";
+    iframe.style.border = "0";
+    document.body.appendChild(iframe);
+
+    // 4. Write the HTML
+    iframe.contentDocument.open();
+    iframe.contentDocument.write(printHTML);
+    iframe.contentDocument.close();
+
+    // 5. Use the reliable setTimeout method instead of .onload
+    setTimeout(() => {
+      // 6. Set up cleanup *inside* the timer
+      iframe.contentWindow.onafterprint = () => {
+        document.body.removeChild(iframe);
+      };
+      
+      // 7. Call print
+      iframe.contentWindow.focus();
+      iframe.contentWindow.print();
+    }, 500); // 500ms delay
+
+  } catch (err) {
+    console.error("Print failed:", err);
+    alert("Failed to print bill.");
   }
+};
+
 
   return (
     <>
@@ -99,7 +147,7 @@ function Bills() {
               />
             </Form.Group>
           </Col>
-          <Col md={2}>
+          <Col md={3}>
             <Form.Group>
               <Form.Label>Farmer Name</Form.Label>
               <Form.Control
@@ -107,11 +155,11 @@ function Bills() {
                 name="farmer_name"
                 value={filters.farmer_name}
                 onChange={handleFilterChange}
-                placeholder="Search..."
+                placeholder="Search by farmer name"
               />
             </Form.Group>
           </Col>
-          <Col md={2}>
+          <Col md={3}>
             <Form.Group>
               <Form.Label>Village</Form.Label>
               <Form.Control
@@ -119,16 +167,8 @@ function Bills() {
                 name="village_name"
                 value={filters.village_name}
                 onChange={handleFilterChange}
-                placeholder="Search..."
+                placeholder="Search by village"
               />
-            </Form.Group>
-          </Col>
-          <Col md={2}>
-            <Form.Group>
-              <Form.Label>&nbsp;</Form.Label>
-              <Button variant="success" className="w-100" onClick={handleFilter}>
-                Filter
-              </Button>
             </Form.Group>
           </Col>
         </Row>
@@ -193,7 +233,7 @@ function Bills() {
         )}
       </Container>
     </>
-  )
+  );
 }
 
-export default Bills
+export default Bills;

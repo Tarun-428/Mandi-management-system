@@ -12,6 +12,7 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
+    console.log("Attaching token to request:", token)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }
@@ -36,15 +37,24 @@ export const merchantsAPI = {
   update: (id, data) => api.put(`/merchants/${id}`, data),
   delete: (id) => api.delete(`/merchants/${id}`),
   addCredit: (id, data) => api.post(`/merchants/${id}/credit`, data),
+  updateCredit: (merchantId, transactionId, data) => 
+      api.put(`/merchants/${merchantId}/credit/${transactionId}`, data),
+  deleteCredit: (merchantId, transactionId) => 
+      api.delete(`/merchants/${merchantId}/credit/${transactionId}`),
   getSummary: (date) => api.get('/merchants/summary', { params: { date } })
 }
+
 
 export const billsAPI = {
   getAll: (params) => api.get('/bills', { params }),
   getById: (id) => api.get(`/bills/${id}`),
   create: (data) => api.post('/bills', data),
   update: (id, data) => api.put(`/bills/${id}`, data),
-  delete: (id) => api.delete(`/bills/${id}`)
+  delete: (id) => api.delete(`/bills/${id}`),
+  print: (id) =>
+    api.get(`/bills/print/${id}`, {
+      responseType: "text",
+    }).then(response => response.data),
 }
 
 export const farmersAPI = {

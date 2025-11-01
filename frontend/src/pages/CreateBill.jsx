@@ -13,12 +13,13 @@ function CreateBill() {
     farmer_mobile: '',
     village_name: '',
     himmali: 0,
+    bharai:0,
     motor_bhada: 0,
     other_charges: 0
   })
   const [items, setItems] = useState([{
     vegetable: '',
-    quantity: '',
+    // quantity: '',
     bags: '',
     weight: '',
     rate: '',
@@ -50,8 +51,8 @@ function CreateBill() {
     const newItems = [...items]
     newItems[index][field] = value
 
-    if (field === 'quantity' || field === 'rate') {
-      const qty = parseFloat(newItems[index].quantity) || 0
+    if (field === 'weight' || field === 'rate') {
+      const qty = parseFloat(newItems[index].weight) || 0
       const rate = parseFloat(newItems[index].rate) || 0
       newItems[index].amount = qty * rate
     }
@@ -67,7 +68,7 @@ function CreateBill() {
   const addItem = () => {
     setItems([...items, {
       vegetable: '',
-      quantity: '',
+      // quantity: '',
       bags: '',
       weight: '',
       rate: '',
@@ -86,12 +87,11 @@ function CreateBill() {
 
   const calculateTotals = () => {
     const totalBags = items.reduce((sum, item) => sum + (parseInt(item.bags) || 0), 0)
-    const totalQuantity = items.reduce((sum, item) => sum + (parseFloat(item.quantity) || 0), 0)
     const totalWeight = items.reduce((sum, item) => sum + (parseFloat(item.weight) || 0), 0)
     const subtotal = items.reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0)
-    const grandTotal = subtotal + parseFloat(formData.himmali || 0) + parseFloat(formData.motor_bhada || 0) + parseFloat(formData.other_charges || 0)
+    const grandTotal = subtotal - parseFloat(formData.himmali || 0) - parseFloat(formData.bharai || 0) - parseFloat(formData.motor_bhada || 0) - parseFloat(formData.other_charges || 0)
 
-    return { totalBags, totalQuantity, totalWeight, subtotal, grandTotal }
+    return { totalBags, totalWeight, subtotal, grandTotal }
   }
 
   const handleSubmit = async (e) => {
@@ -104,7 +104,6 @@ function CreateBill() {
         ...formData,
         items: items.map(item => ({
           vegetable: item.vegetable,
-          quantity: parseFloat(item.quantity),
           bags: parseInt(item.bags),
           weight: parseFloat(item.weight),
           rate: parseFloat(item.rate),
@@ -113,10 +112,64 @@ function CreateBill() {
         }))
       }
 
-      await billsAPI.create(billData)
-      navigate('/bills')
+      // 1. Create the bill
+      const createResponse = await billsAPI.create(billData)
+      
+      // 2. Get the new bill's ID
+      const newBillId = createResponse.data.id; 
+
+      if (newBillId) {
+        
+        console.log("Step 1: Bill created successfully. ID:", newBillId); // DEBUG
+
+        // 3. Call your print API to get the HTML string
+        const printHTML = await billsAPI.print(newBillId);
+        
+        console.log("Step 2: Received HTML for printing."); // DEBUG
+
+        console.log("Step 2.5: Type of printHTML:", typeof printHTML);
+        // 4. Create the invisible iframe
+        const iframe = document.createElement("iframe");
+        iframe.style.position = "fixed";
+        iframe.style.right = "0";
+        iframe.style.bottom = "0";
+        iframe.style.width = "0";
+        iframe.style.height = "0";
+        iframe.style.border = "0";
+        document.body.appendChild(iframe);
+
+        // 5. Write the HTML into the iframe
+        iframe.contentDocument.open();
+        iframe.contentDocument.write(printHTML);
+        iframe.contentDocument.close();
+
+        // --- START OF FIX ---
+        // We replace the unreliable 'iframe.onload' with a timer.
+        
+        setTimeout(() => {
+          console.log("Step 3: Timer finished, triggering print dialog..."); // DEBUG
+
+          // 6. Set up the after-print cleanup *inside* the timeout
+          iframe.contentWindow.onafterprint = () => {
+            console.log("Step 4: Print dialog closed, removing iframe and navigating."); // DEBUG
+            document.body.removeChild(iframe);
+            navigate('/bills');
+          };
+          
+          // 7. Call print
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+
+        }, 500); // 500ms delay. You can increase this if printing is still flaky.
+        // --- END OF FIX ---
+
+      } else {
+        throw new Error("Bill created, but no ID was returned from the server.");
+      }
+
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create bill')
+      console.error("Submit/Print failed:", err);
+      setError(err.response?.data?.message || 'Failed to create and print bill');
     } finally {
       setLoading(false)
     }
@@ -189,7 +242,7 @@ function CreateBill() {
                 <thead>
                   <tr>
                     <th>Vegetable</th>
-                    <th>Quantity (kg)</th>
+                    {/* <th>Quantity (kg)</th> */}
                     <th>Bags</th>
                     <th>Weight (kg)</th>
                     <th>Rate (₹/kg)</th>
@@ -216,15 +269,6 @@ function CreateBill() {
                       <td>
                         <Form.Control
                           type="number"
-                          step="0.01"
-                          value={item.quantity}
-                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
-                          required
-                        />
-                      </td>
-                      <td>
-                        <Form.Control
-                          type="number"
                           value={item.bags}
                           onChange={(e) => handleItemChange(index, 'bags', e.target.value)}
                           required
@@ -233,7 +277,7 @@ function CreateBill() {
                       <td>
                         <Form.Control
                           type="number"
-                          step="0.01"
+                          step="1.00"
                           value={item.weight}
                           onChange={(e) => handleItemChange(index, 'weight', e.target.value)}
                           required
@@ -242,7 +286,7 @@ function CreateBill() {
                       <td>
                         <Form.Control
                           type="number"
-                          step="0.01"
+                          step="1.00"
                           value={item.rate}
                           onChange={(e) => handleItemChange(index, 'rate', e.target.value)}
                           required
@@ -289,9 +333,21 @@ function CreateBill() {
                     <Form.Label>Himmali (Auto-calculated @ ₹8/bag)</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="himmali"
                       value={formData.himmali}
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Bharai</Form.Label>
+                    <Form.Control
+                      type="number"
+                      step="1.00"
+                      name="bharai"
+                      value={formData.bharai}
                       onChange={handleChange}
                     />
                   </Form.Group>
@@ -301,7 +357,7 @@ function CreateBill() {
                     <Form.Label>Motor Bhada</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="motor_bhada"
                       value={formData.motor_bhada}
                       onChange={handleChange}
@@ -313,7 +369,7 @@ function CreateBill() {
                     <Form.Label>Other Charges</Form.Label>
                     <Form.Control
                       type="number"
-                      step="0.01"
+                      step="1.00"
                       name="other_charges"
                       value={formData.other_charges}
                       onChange={handleChange}
@@ -330,9 +386,6 @@ function CreateBill() {
               <Row>
                 <Col md={3}>
                   <strong>Total Bags:</strong> {totals.totalBags}
-                </Col>
-                <Col md={3}>
-                  <strong>Total Quantity:</strong> {totals.totalQuantity} kg
                 </Col>
                 <Col md={3}>
                   <strong>Total Weight:</strong> {totals.totalWeight} kg

@@ -59,7 +59,7 @@ function MerchantSummary() {
                 <thead>
                   <tr>
                     <th>Vegetable</th>
-                    <th>Quantity (kg)</th>
+                    <th>Weight(kg)</th>
                     <th>Bags</th>
                     <th>Weight (kg)</th>
                     <th>Rate (₹/kg)</th>
@@ -70,7 +70,7 @@ function MerchantSummary() {
                   {merchantData.items.map((item, idx) => (
                     <tr key={idx}>
                       <td>{item.vegetable}</td>
-                      <td>{item.quantity}</td>
+                      <td>{item.weight}</td>
                       <td>{item.bags}</td>
                       <td>{item.weight}</td>
                       <td>₹{item.rate}</td>

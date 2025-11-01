@@ -10,25 +10,45 @@ jwt = JWTManager()
 
 def create_app():
     app = Flask(__name__)
+    app.url_map.strict_slashes = False 
     
+    # 🔐 SECURITY KEYS
     app.config['SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'dev-secret-key-change-in-production')
-    # PostgreSQL configuration with connection pooling for concurrent access
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL')
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'super-secret-key')
+    app.config['JWT_ACCESS_TOKEN_EXPIRES'] = 18000  # Optional: token expires in 5 hour
+
+    # ✅ PostgreSQL Database Configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'postgresql://postgres:tarun@localhost:5432/mandi_db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-        'pool_size': 10,              # Maximum number of database connections
-        'pool_recycle': 300,          # Recycle connections after 5 minutes
-        'pool_pre_ping': True,        # Verify connections before using
-        'max_overflow': 20,           # Allow 20 additional connections beyond pool_size
-        'pool_timeout': 30,           # Timeout for getting connection from pool
+        'pool_size': 10,
+        'pool_recycle': 300,
+        'pool_pre_ping': True,
+        'max_overflow': 20,
+        'pool_timeout': 30,
     }
-    app.config['JWT_SECRET_KEY'] = os.environ.get('SESSION_SECRET', 'jwt-secret-key-change-in-production')
-    
-    CORS(app)
+
+    # ✅ JWT CONFIGURATION
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
+    app.config['JWT_HEADER_NAME'] = 'Authorization'
+    app.config['JWT_HEADER_TYPE'] = 'Bearer'
+    app.config['JWT_IDENTITY_CLAIM'] = 'sub'
+
+    # ✅ ENABLE CORS FOR FRONTEND
+    frontend_urls = os.environ.get('FRONTEND_URLS', 'http://localhost:5173,http://localhost:5000').split(',')
+    CORS(
+        app,
+        resources={r"/api/*": {"origins": frontend_urls}},
+        supports_credentials=True,
+        expose_headers=["Content-Type", "Authorization"]
+    )
+
+    # ✅ Initialize Extensions
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
-    
+
+    # ✅ Register Blueprints
     from .auth import auth_bp
     from .bills import bills_bp
     from .merchants import merchants_bp

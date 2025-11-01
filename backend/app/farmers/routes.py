@@ -1,6 +1,6 @@
 from flask import request, jsonify
-from flask_jwt_extended import jwt_required
-from ..models.models import db, Bill, BillItem
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from ..models.models import db, Bill
 from sqlalchemy import func
 from datetime import datetime
 from . import farmers_bp
@@ -9,13 +9,20 @@ from . import farmers_bp
 @jwt_required()
 def get_farmers():
     try:
+        user_id = get_jwt_identity()
         date_str = request.args.get('date')
         
         if date_str:
             filter_date = datetime.strptime(date_str, '%Y-%m-%d').date()
-            bills = Bill.query.filter(func.date(Bill.created_at) == filter_date).all()
+            bills = Bill.query.filter(
+                Bill.user_id == user_id,
+                func.date(Bill.created_at) == filter_date
+            ).all()
         else:
-            bills = Bill.query.filter(func.date(Bill.created_at) == datetime.utcnow().date()).all()
+            bills = Bill.query.filter(
+                Bill.user_id == user_id,
+                func.date(Bill.created_at) == datetime.utcnow().date()
+            ).all()
         
         farmers_data = []
         total_farmers = len(bills)

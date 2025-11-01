@@ -2,6 +2,7 @@ import React from 'react'
 import { Container, Row, Col, Card, Button } from 'react-bootstrap'
 import { useNavigate } from 'react-router-dom'
 import Navbar from '../components/Navbar'
+console.log("Token in localStorage:", localStorage.getItem("token"));
 
 function Dashboard() {
   const navigate = useNavigate()

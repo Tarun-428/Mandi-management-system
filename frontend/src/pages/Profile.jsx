@@ -8,6 +8,7 @@ function Profile() {
     company_name: '',
     email: '',
     mobile: '',
+    address: '',
     password: '',
     partners: []
   })
@@ -71,6 +72,7 @@ function Profile() {
         company_name: formData.company_name,
         email: formData.email,
         mobile: formData.mobile,
+        address: formData.address,
         partners: formData.partners
       }
       
@@ -137,6 +139,18 @@ function Profile() {
                       type="tel"
                       name="mobile"
                       value={formData.mobile}
+                      onChange={handleChange}
+                      required
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Address</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="address"
+                      value={formData.address}
                       onChange={handleChange}
                       required
                     />

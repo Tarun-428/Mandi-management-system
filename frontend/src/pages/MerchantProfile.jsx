@@ -11,6 +11,7 @@ function MerchantProfile() {
   const [trades, setTrades] = useState([])
   const [transactions, setTransactions] = useState([])
   const [showCreditModal, setShowCreditModal] = useState(false)
+  const [editingTransaction, setEditingTransaction] = useState(null)
   const [creditData, setCreditData] = useState({
     amount: '',
     payment_mode: 'Cash',
@@ -38,20 +39,54 @@ function MerchantProfile() {
     setCreditData({ ...creditData, [e.target.name]: e.target.value })
   }
 
+  const openAddCreditModal = () => {
+    setEditingTransaction(null)
+    setCreditData({ amount: '', payment_mode: 'Cash', description: '' })
+    setShowCreditModal(true)
+  }
+
+  const openEditCreditModal = (transaction) => {
+    setEditingTransaction(transaction)
+    setCreditData({
+      amount: transaction.amount,
+      payment_mode: transaction.payment_mode,
+      description: transaction.description || ''
+    })
+    setShowCreditModal(true)
+  }
+
   const handleCreditSubmit = async (e) => {
     e.preventDefault()
     setError('')
     setLoading(true)
 
     try {
-      await merchantsAPI.addCredit(id, creditData)
+      if (editingTransaction) {
+        // Update credit
+        await merchantsAPI.updateCredit(id, editingTransaction.id, creditData)
+      } else {
+        // Add new credit
+        await merchantsAPI.addCredit(id, creditData)
+      }
       setShowCreditModal(false)
       setCreditData({ amount: '', payment_mode: 'Cash', description: '' })
+      setEditingTransaction(null)
       loadMerchantData()
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to add credit')
+      setError(err.response?.data?.message || 'Failed to add/update credit')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDeleteCredit = async (transaction) => {
+    if (window.confirm('Are you sure you want to delete this credit entry?')) {
+      try {
+        await merchantsAPI.deleteCredit(id, transaction.id)
+        loadMerchantData()
+      } catch (err) {
+        setError(err.response?.data?.message || 'Failed to delete credit')
+      }
     }
   }
 
@@ -110,8 +145,9 @@ function MerchantProfile() {
           </Col>
         </Row>
 
+        {/* Trade History */}
         <Card className="mb-4">
-          <Card.Header className="d-flex justify-content-between align-items-center">
+          <Card.Header>
             <h5 className="mb-0">Trade History</h5>
           </Card.Header>
           <Card.Body>
@@ -122,7 +158,7 @@ function MerchantProfile() {
                   <th>Bill Number</th>
                   <th>Farmer</th>
                   <th>Vegetable</th>
-                  <th>Quantity (kg)</th>
+                  <th>Weight(kg)</th>
                   <th>Bags</th>
                   <th>Rate (₹/kg)</th>
                   <th>Amount (₹)</th>
@@ -135,7 +171,7 @@ function MerchantProfile() {
                     <td>{trade.bill_number}</td>
                     <td>{trade.farmer_name}</td>
                     <td>{trade.vegetable}</td>
-                    <td>{trade.quantity}</td>
+                    <td>{trade.weight}</td>
                     <td>{trade.bags}</td>
                     <td>₹{trade.rate}</td>
                     <td>₹{trade.amount}</td>
@@ -143,16 +179,15 @@ function MerchantProfile() {
                 ))}
               </tbody>
             </Table>
-            {trades.length === 0 && (
-              <div className="text-center py-3">No trades found</div>
-            )}
+            {trades.length === 0 && <div className="text-center py-3">No trades found</div>}
           </Card.Body>
         </Card>
 
+        {/* Credit Entries */}
         <Card>
           <Card.Header className="d-flex justify-content-between align-items-center">
             <h5 className="mb-0">Credit Entries</h5>
-            <Button variant="primary" size="sm" onClick={() => setShowCreditModal(true)}>
+            <Button variant="primary" size="sm" onClick={openAddCreditModal}>
               Add Credit Entry
             </Button>
           </Card.Header>
@@ -164,6 +199,7 @@ function MerchantProfile() {
                   <th>Amount (₹)</th>
                   <th>Payment Mode</th>
                   <th>Description</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,19 +209,26 @@ function MerchantProfile() {
                     <td>₹{transaction.amount}</td>
                     <td>{transaction.payment_mode}</td>
                     <td>{transaction.description || '-'}</td>
+                    <td>
+                      {transaction.payment_mode !== 'Opening Balance' && (
+                        <>
+                          <Button size="sm" variant="warning" onClick={() => openEditCreditModal(transaction)}>Edit</Button>{' '}
+                          <Button size="sm" variant="danger" onClick={() => handleDeleteCredit(transaction)}>Delete</Button>
+                        </>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </Table>
-            {transactions.length === 0 && (
-              <div className="text-center py-3">No credit entries found</div>
-            )}
+            {transactions.length === 0 && <div className="text-center py-3">No credit entries found</div>}
           </Card.Body>
         </Card>
 
+        {/* Add/Edit Credit Modal */}
         <Modal show={showCreditModal} onHide={() => setShowCreditModal(false)}>
           <Modal.Header closeButton>
-            <Modal.Title>Add Credit Entry</Modal.Title>
+            <Modal.Title>{editingTransaction ? 'Edit Credit Entry' : 'Add Credit Entry'}</Modal.Title>
           </Modal.Header>
           <Modal.Body>
             <Form onSubmit={handleCreditSubmit}>
@@ -231,7 +274,7 @@ function MerchantProfile() {
                   Cancel
                 </Button>
                 <Button variant="primary" type="submit" disabled={loading}>
-                  {loading ? 'Adding...' : 'Add Credit'}
+                  {loading ? (editingTransaction ? 'Updating...' : 'Adding...') : (editingTransaction ? 'Update Credit' : 'Add Credit')}
                 </Button>
               </div>
             </Form>

@@ -1,13 +1,14 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Container, Card, Form, Button, Alert, Row, Col } from 'react-bootstrap'
+import { Container, Card, Form, Button, Alert } from 'react-bootstrap'
 import { authAPI } from '../services/api'
 
-function Register({ setAuth }) {
+function Register() {
   const [formData, setFormData] = useState({
     company_name: '',
     email: '',
     mobile: '',
+    address: '',
     password: '',
     partners: []
   })
@@ -26,10 +27,17 @@ function Register({ setAuth }) {
 
     try {
       const response = await authAPI.register(formData)
-      localStorage.setItem('token', response.data.access_token)
-      localStorage.setItem('user', JSON.stringify(response.data.user))
-      setAuth(true)
-      navigate('/')
+
+      // Optionally show a success alert
+      alert(response.data.message || 'Registration successful!')
+
+      // Redirect to login page using the URL from backend
+      if (response.data.redirect_url) {
+        navigate(response.data.redirect_url)
+      } else {
+        navigate('/login')
+      }
+
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed')
     } finally {
@@ -75,6 +83,17 @@ function Register({ setAuth }) {
                 type="tel"
                 name="mobile"
                 value={formData.mobile}
+                onChange={handleChange}
+                required
+              />
+            </Form.Group>
+            
+            <Form.Group className="mb-3">
+              <Form.Label>Address</Form.Label>
+              <Form.Control
+                type="tel"
+                name="address"
+                value={formData.address}
                 onChange={handleChange}
                 required
               />
